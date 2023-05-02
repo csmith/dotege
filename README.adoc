@@ -140,7 +140,8 @@ nginx server, for instance, as the nginx image exposes port 80 (only).
 `com.chameth.proxytag`::
 Arbitrary tag to control which containers an instance of Dotege will deal with. If specified,
 the container will be ignored by any instance of Dotege that does not have the same value
-passed in using the `DOTEGE_PROXYTAG` env var.
+passed in using the `DOTEGE_PROXYTAG` env var.  Note this should also be set on the container
+specified in DOTEGE_SIGNAL_CONTAINER if set, or it will be ignored and not restarted.
 
 `com.chameth.vhost`::
 Comma- or space-delimited list of hostnames that the container will handle requests for.
