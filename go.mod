@@ -43,7 +43,7 @@ require (
 )
 
 require (
-	github.com/stretchr/testify v1.8.2
+	github.com/stretchr/testify v1.8.3
 	golang.org/x/exp v0.0.0-20220325121720-054d8573a5d8
 )
 
