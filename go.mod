@@ -16,7 +16,7 @@ require (
 	github.com/docker/go-connections v0.4.0
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/exoscale/egoscale v0.90.0 // indirect
-	github.com/go-acme/lego/v4 v4.12.0
+	github.com/go-acme/lego/v4 v4.12.3
 	github.com/go-errors/errors v1.4.2 // indirect
 	github.com/go-resty/resty/v2 v2.7.0 // indirect
 	github.com/gofrs/uuid v4.2.0+incompatible // indirect
