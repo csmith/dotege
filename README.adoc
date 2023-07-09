@@ -20,14 +20,6 @@ significant amount of complexity to Dotege to maintain it.
 
 Dotege is configured using environment variables:
 
-`DOTEGE_DEBUG`::
-Enables advanced logging of certain information in Dotege. Comma-separated list of
-topics to enable logging for. Optional. Valid options are:
-+
-* `containers` - containers that are seen to start/stop
-* `headers` - custom headers (`com.chameth.headers` labels)
-* `hostnames` - mapping of containers to hostnames
-
 `DOTEGE_PROXYTAG`::
 Only containers with a matching `com.chameth.proxytag` label will be processed by
 Dotege. This allows you to run multiple instances that handle separate containers.

@@ -9,10 +9,6 @@ import (
 )
 
 const (
-	envDebugKey                   = "DOTEGE_DEBUG"
-	envDebugContainersValue       = "containers"
-	envDebugHeadersValue          = "headers"
-	envDebugHostnamesValue        = "hostnames"
 	envSignalContainerKey         = "DOTEGE_SIGNAL_CONTAINER"
 	envSignalContainerDefault     = ""
 	envSignalTypeKey              = "DOTEGE_SIGNAL_TYPE"
@@ -33,10 +29,6 @@ type Config struct {
 	Signals   []ContainerSignal
 	Users     []User
 	ProxyTag  string
-
-	DebugContainers bool
-	DebugHeaders    bool
-	DebugHostnames  bool
 }
 
 // User holds the details of a single user used for ACL purposes.
@@ -81,7 +73,6 @@ func createSignalConfig() []ContainerSignal {
 }
 
 func createConfig() *Config {
-	debug := toMap(splitList(strings.ToLower(optionalStringVar(envDebugKey, ""))))
 	c := &Config{
 		Templates: []TemplateConfig{
 			{
@@ -92,10 +83,6 @@ func createConfig() *Config {
 		Signals:  createSignalConfig(),
 		Users:    readUsers(),
 		ProxyTag: optionalStringVar(envProxyTagKey, envProxyTagDefault),
-
-		DebugContainers: debug[envDebugContainersValue],
-		DebugHeaders:    debug[envDebugHeadersValue],
-		DebugHostnames:  debug[envDebugHostnamesValue],
 	}
 
 	return c
@@ -118,12 +105,4 @@ func splitList(input string) (result []string) {
 		}
 	}
 	return
-}
-
-func toMap(input []string) map[string]bool {
-	res := make(map[string]bool)
-	for k := range input {
-		res[input[k]] = true
-	}
-	return res
 }

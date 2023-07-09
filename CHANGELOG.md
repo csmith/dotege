@@ -6,6 +6,10 @@
   of any deployment of Dotege actually using this functionality, and it's a
   non-trivial maintenance burden. If you _are_ using this functionality, please
   get in touch (and stick with v1 for now!)
+* The `DOTEGE_DEBUG` env var is no longer used. Dotege's default logging will
+  be slightly more verbose.
+* The format of Dotege's logs have changed. They are now formatted using Go's
+  standard logger instead of a third-party logging tool.
 
 # v1.3.1
 

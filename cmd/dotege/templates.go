@@ -2,6 +2,7 @@ package main
 
 import (
 	"io/ioutil"
+	"log"
 	"path"
 	"sort"
 	"strings"
@@ -27,10 +28,10 @@ type Template struct {
 }
 
 func CreateTemplate(source, destination string) *Template {
-	loggers.main.Infof("Registered template from %s, writing to %s", source, destination)
+	log.Printf("Registered template from %s, writing to %s", source, destination)
 	tmpl, err := template.New(path.Base(source)).Funcs(templateFuncs).ParseFiles(source)
 	if err != nil {
-		loggers.main.Fatal("Unable to parse template", err)
+		log.Fatalf("Unable to parse template: %v", err)
 	}
 
 	buf, _ := ioutil.ReadFile(destination)
@@ -46,7 +47,7 @@ type Templates []*Template
 
 func (t Templates) Generate(context interface{}) (updated bool) {
 	for _, tmpl := range t {
-		loggers.main.Debugf("Checking for updates to %s", tmpl.source)
+		log.Printf("Checking for updates to %s", tmpl.source)
 		builder := &strings.Builder{}
 		err := tmpl.template.Execute(builder, context)
 		if err != nil {
@@ -54,14 +55,14 @@ func (t Templates) Generate(context interface{}) (updated bool) {
 		}
 		if tmpl.content != builder.String() {
 			updated = true
-			loggers.main.Infof("Writing updated template to %s", tmpl.destination)
+			log.Printf("Writing updated template to %s", tmpl.destination)
 			tmpl.content = builder.String()
 			err = ioutil.WriteFile(tmpl.destination, []byte(builder.String()), 0666)
 			if err != nil {
-				loggers.main.Fatal("Unable to write template", err)
+				log.Fatalf("Unable to write template: %v", err)
 			}
 		} else {
-			loggers.main.Debugf("Not writing template to %s as content is the same", tmpl.destination)
+			log.Printf("Not writing template to %s as content is the same", tmpl.destination)
 		}
 	}
 	return

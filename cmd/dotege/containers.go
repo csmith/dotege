@@ -1,6 +1,7 @@
 package main
 
 import (
+	"log"
 	"strconv"
 	"strings"
 )
@@ -35,12 +36,12 @@ func (c *Container) Port() int {
 		p, err := strconv.Atoi(l)
 
 		if err != nil {
-			loggers.main.Warnf("Invalid port specification on container %s: %s (%v)", c.Name, l, err)
+			log.Printf("Invalid port specification on container %s: %s (%v)", c.Name, l, err)
 			return -1
 		}
 
 		if p < 1 || p >= 1<<16 {
-			loggers.main.Warnf("Invalid port specification on container %s: %s (out of range)", c.Name, l)
+			log.Printf("Invalid port specification on container %s: %s (out of range)", c.Name, l)
 			return -1
 		}
 
@@ -64,9 +65,8 @@ func (c *Container) Headers() map[string]string {
 				name := strings.TrimSpace(strings.TrimRight(parts[0], ":"))
 				value := strings.TrimSpace(parts[1])
 				res[name] = value
-				loggers.headers.Debugf("Container %s has header %s => %s", c.Name, name, value)
 			} else {
-				loggers.main.Warnf("Container %s has invalid label %s (%s) - expecting name and value", c.Name, k, v)
+				log.Printf("Container %s has invalid label %s (%s) - expecting name and value", c.Name, k, v)
 			}
 		}
 	}
@@ -78,21 +78,11 @@ type Containers map[string]*Container
 
 // Hostnames builds a mapping of primary hostnames to details about the containers that use them
 func (c Containers) Hostnames() (hostnames map[string]*Hostname) {
-	loggers.hostnames.Debugf("Calculating hostnames for %d containers", len(c))
 	hostnames = make(map[string]*Hostname)
 	for _, container := range c {
 		if label, ok := container.Labels[labelVhost]; ok {
 			names := splitList(label)
 			primary := names[0]
-
-			loggers.hostnames.Debugf(
-				"Container %s (ID: %s) has vhosts: %s, port: %d, proxy status: %t",
-				container.Name,
-				container.Id,
-				label,
-				container.Port(),
-				container.ShouldProxy(),
-			)
 
 			h := hostnames[primary]
 			if h == nil {
@@ -101,9 +91,6 @@ func (c Containers) Hostnames() (hostnames map[string]*Hostname) {
 			}
 
 			h.update(names[1:], container)
-			loggers.hostnames.Debugf("Hostname %s now has %d containers and %d alternate names", h.Name, len(h.Containers), len(h.Alternatives))
-		} else {
-			loggers.hostnames.Debugf("Container %s (ID: %s) has no vhost label", container.Name, container.Id)
 		}
 	}
 	return
@@ -142,7 +129,6 @@ func (h *Hostname) update(alternates []string, container *Container) {
 	}
 
 	for k, v := range container.Headers() {
-		loggers.headers.Debugf("Adding header for hostname %s: %s => %s", h.Name, k, v)
 		h.Headers[k] = v
 	}
 }

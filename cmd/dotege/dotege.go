@@ -3,29 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"log"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
 	"github.com/docker/docker/client"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 var (
-	loggers = struct {
-		main       *zap.SugaredLogger
-		headers    *zap.SugaredLogger
-		hostnames  *zap.SugaredLogger
-		containers *zap.SugaredLogger
-	}{
-		main:       createLogger(),
-		headers:    zap.NewNop().Sugar(),
-		hostnames:  zap.NewNop().Sugar(),
-		containers: zap.NewNop().Sugar(),
-	}
-
 	config     *Config
 	containers = make(Containers)
 	GitSHA     string
@@ -46,17 +33,6 @@ func monitorSignals() <-chan bool {
 	return done
 }
 
-func createLogger() *zap.SugaredLogger {
-	zapConfig := zap.NewDevelopmentConfig()
-	zapConfig.DisableCaller = true
-	zapConfig.DisableStacktrace = true
-	zapConfig.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	zapConfig.OutputPaths = []string{"stdout"}
-	zapConfig.ErrorOutputPaths = []string{"stdout"}
-	logger, _ := zapConfig.Build()
-	return logger.Sugar()
-}
-
 func createTemplates(configs []TemplateConfig) Templates {
 	var templates Templates
 	for _, t := range configs {
@@ -66,12 +42,10 @@ func createTemplates(configs []TemplateConfig) Templates {
 }
 
 func main() {
-	loggers.main.Infof("Dotege %s is starting", GitSHA)
+	log.Printf("Dotege %s is starting", GitSHA)
 
 	doneChan := monitorSignals()
 	config = createConfig()
-
-	setUpDebugLoggers()
 
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
@@ -89,7 +63,7 @@ func main() {
 
 	go func() {
 		if err := containerMonitor.monitor(ctx, containerEvents); err != nil {
-			loggers.main.Fatal("Error monitoring containers: ", err.Error())
+			log.Fatalf("Error monitoring containers: %v", err)
 		}
 	}()
 
@@ -100,19 +74,19 @@ func main() {
 				switch event.Operation {
 				case Added:
 					if event.Container.Labels[labelProxyTag] == config.ProxyTag {
-						loggers.main.Debugf("Container added: %s", event.Container.Name)
-						loggers.containers.Debugf("New container with name %s has id: %s", event.Container.Name, event.Container.Id)
+						log.Printf("Container added: %s (id: %s)", event.Container.Name, event.Container.Id)
 						containers[event.Container.Id] = &event.Container
 						jitterTimer.Reset(100 * time.Millisecond)
 					} else {
-						loggers.main.Debugf("Container ignored due to proxy tag: %s (wanted: '%s', got: '%s')", event.Container.Name, config.ProxyTag, event.Container.Labels[labelProxyTag])
+						log.Printf(
+							"Ignored container %s due to proxy tag (wanted: '%s', got: '%s')",
+							event.Container.Name, config.ProxyTag, event.Container.Labels[labelProxyTag],
+						)
 					}
 				case Removed:
-					loggers.main.Debugf("Container removed: %s", event.Container.Id)
-
 					_, inExisting := containers[event.Container.Id]
-					loggers.containers.Debugf(
-						"Removed container with ID %s, was in main containers: %t",
+					log.Printf(
+						"Removed container with ID %s (was previously known: %t)",
 						event.Container.Id,
 						inExisting,
 					)
@@ -158,20 +132,6 @@ func main() {
 	}
 }
 
-func setUpDebugLoggers() {
-	if config.DebugContainers {
-		loggers.containers = loggers.main
-	}
-
-	if config.DebugHeaders {
-		loggers.headers = loggers.main
-	}
-
-	if config.DebugHostnames {
-		loggers.hostnames = loggers.main
-	}
-}
-
 func signalContainer(dockerClient *client.Client) {
 	for _, s := range config.Signals {
 		var container *Container
@@ -182,13 +142,15 @@ func signalContainer(dockerClient *client.Client) {
 		}
 
 		if container != nil {
-			loggers.main.Debugf("Killing container %s (%s) with signal %s", container.Name, container.Id, s.Signal)
+			log.Printf("Killing container %s (%s) with signal %s", container.Name, container.Id, s.Signal)
 			err := dockerClient.ContainerKill(context.Background(), container.Id, s.Signal)
 			if err != nil {
-				loggers.main.Errorf("Unable to send signal %s to container %s: %s", s.Signal, s.Name, err.Error())
+				log.Printf("Unable to send signal %s to container %s: %v", s.Signal, s.Name, err)
 			}
+		} else if config.ProxyTag != "" {
+			log.Printf("Couldn't signal container %s as it is not known. Does it have the correct proxytag set?", s.Name)
 		} else {
-			loggers.main.Warnf("Couldn't signal container %s as it is not running", s.Name)
+			log.Printf("Couldn't signal container %s as it is not known", s.Name)
 		}
 	}
 }
