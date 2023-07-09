@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -9,43 +10,26 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/csmith/envflag"
 	"github.com/docker/docker/client"
 )
 
 var (
-	config     *Config
+	signalContainer     = flag.String("signal-container", "", "The container to signal when the template changes")
+	signalType          = flag.String("signal-type", "HUP", "The signal to send to the container")
+	templateSource      = flag.String("template-source", "./templates/haproxy.cfg.tpl", "The template to use")
+	templateDestination = flag.String("template-destination", "/data/output/haproxy.cfg", "The destination to write the template to")
+	proxyTag            = flag.String("proxytag", "", "If set, ignore any containers that do not have this tag as a label")
+
 	containers = make(Containers)
 	GitSHA     string
 )
 
-func monitorSignals() <-chan bool {
-	signals := make(chan os.Signal, 1)
-	done := make(chan bool, 1)
-
-	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
-
-	go func() {
-		sig := <-signals
-		fmt.Printf("Received %s signal\n", sig)
-		done <- true
-	}()
-
-	return done
-}
-
-func createTemplates(configs []TemplateConfig) Templates {
-	var templates Templates
-	for _, t := range configs {
-		templates = append(templates, CreateTemplate(t.Source, t.Destination))
-	}
-	return templates
-}
-
 func main() {
 	log.Printf("Dotege %s is starting", GitSHA)
+	envflag.Parse(envflag.WithPrefix("DOTEGE_"))
 
 	doneChan := monitorSignals()
-	config = createConfig()
 
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
@@ -54,7 +38,7 @@ func main() {
 		panic(err)
 	}
 
-	templates := createTemplates(config.Templates)
+	templates := createTemplates()
 
 	containerMonitor := ContainerMonitor{client: dockerClient}
 
@@ -73,14 +57,14 @@ func main() {
 			case event := <-containerEvents:
 				switch event.Operation {
 				case Added:
-					if event.Container.Labels[labelProxyTag] == config.ProxyTag {
+					if event.Container.Labels[labelProxyTag] == *proxyTag {
 						log.Printf("Container added: %s (id: %s)", event.Container.Name, event.Container.Id)
 						containers[event.Container.Id] = &event.Container
 						jitterTimer.Reset(100 * time.Millisecond)
 					} else {
 						log.Printf(
 							"Ignored container %s due to proxy tag (wanted: '%s', got: '%s')",
-							event.Container.Name, config.ProxyTag, event.Container.Labels[labelProxyTag],
+							event.Container.Name, *proxyTag, event.Container.Labels[labelProxyTag],
 						)
 					}
 				case Removed:
@@ -113,7 +97,7 @@ func main() {
 				})
 
 				if updated {
-					signalContainer(dockerClient)
+					sendSignal(dockerClient)
 				}
 			}
 		}
@@ -128,25 +112,48 @@ func main() {
 	}
 }
 
-func signalContainer(dockerClient *client.Client) {
-	for _, s := range config.Signals {
-		var container *Container
-		for _, c := range containers {
-			if c.Name == s.Name {
-				container = c
-			}
-		}
+func monitorSignals() <-chan bool {
+	signals := make(chan os.Signal, 1)
+	done := make(chan bool, 1)
 
-		if container != nil {
-			log.Printf("Killing container %s (%s) with signal %s", container.Name, container.Id, s.Signal)
-			err := dockerClient.ContainerKill(context.Background(), container.Id, s.Signal)
-			if err != nil {
-				log.Printf("Unable to send signal %s to container %s: %v", s.Signal, s.Name, err)
-			}
-		} else if config.ProxyTag != "" {
-			log.Printf("Couldn't signal container %s as it is not known. Does it have the correct proxytag set?", s.Name)
-		} else {
-			log.Printf("Couldn't signal container %s as it is not known", s.Name)
+	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
+
+	go func() {
+		sig := <-signals
+		fmt.Printf("Received %s signal\n", sig)
+		done <- true
+	}()
+
+	return done
+}
+
+func createTemplates() Templates {
+	var templates Templates
+	templates = append(templates, CreateTemplate(*templateSource, *templateDestination))
+	return templates
+}
+
+func sendSignal(dockerClient *client.Client) {
+	if *signalContainer == "" {
+		return
+	}
+
+	var container *Container
+	for _, c := range containers {
+		if c.Name == *signalContainer {
+			container = c
 		}
+	}
+
+	if container != nil {
+		log.Printf("Killing container %s (%s) with signal %s", container.Name, container.Id, *signalType)
+		err := dockerClient.ContainerKill(context.Background(), container.Id, *signalType)
+		if err != nil {
+			log.Printf("Unable to send signal %s to container %s: %v", *signalType, *signalContainer, err)
+		}
+	} else if *proxyTag != "" {
+		log.Printf("Couldn't signal container %s as it is not known. Does it have the correct proxytag set?", *signalContainer)
+	} else {
+		log.Printf("Couldn't signal container %s as it is not known", *signalContainer)
 	}
 }

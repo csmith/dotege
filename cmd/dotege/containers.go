@@ -124,3 +124,13 @@ func (h *Hostname) update(alternates []string, container *Container) {
 		h.Headers[k] = v
 	}
 }
+
+func splitList(input string) (result []string) {
+	result = []string{}
+	for _, part := range strings.Split(strings.ReplaceAll(input, " ", ","), ",") {
+		if len(part) > 0 {
+			result = append(result, part)
+		}
+	}
+	return
+}
