@@ -1,8 +1,8 @@
 package main
 
 import (
-	"io/ioutil"
 	"log"
+	"os"
 	"path"
 	"sort"
 	"strings"
@@ -34,7 +34,7 @@ func CreateTemplate(source, destination string) *Template {
 		log.Fatalf("Unable to parse template: %v", err)
 	}
 
-	buf, _ := ioutil.ReadFile(destination)
+	buf, _ := os.ReadFile(destination)
 	return &Template{
 		source:      source,
 		destination: destination,
@@ -49,16 +49,17 @@ func (t Templates) Generate(context interface{}) (updated bool) {
 	for _, tmpl := range t {
 		log.Printf("Checking for updates to %s", tmpl.source)
 		builder := &strings.Builder{}
-		err := tmpl.template.Execute(builder, context)
-		if err != nil {
-			panic(err)
+
+		if err := tmpl.template.Execute(builder, context); err != nil {
+			log.Fatalf("Failed to execute template: %v", err)
 		}
+
 		if tmpl.content != builder.String() {
 			updated = true
 			log.Printf("Writing updated template to %s", tmpl.destination)
 			tmpl.content = builder.String()
-			err = ioutil.WriteFile(tmpl.destination, []byte(builder.String()), 0666)
-			if err != nil {
+
+			if err := os.WriteFile(tmpl.destination, []byte(builder.String()), 0666); err != nil {
 				log.Fatalf("Unable to write template: %v", err)
 			}
 		} else {
