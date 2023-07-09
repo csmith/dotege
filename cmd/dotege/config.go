@@ -3,71 +3,36 @@ package main
 import (
 	"fmt"
 	"os"
-	"strconv"
 	"strings"
 
-	"github.com/go-acme/lego/v4/certcrypto"
-	"github.com/go-acme/lego/v4/lego"
 	"gopkg.in/yaml.v2"
 )
 
 const (
-	envCertDestinationKey           = "DOTEGE_CERT_DESTINATION"
-	envCertDestinationDefault       = "/data/certs/"
-	envCertUserIdKey                = "DOTEGE_CERT_UID"
-	envCertUserIdDefault            = -1
-	envCertGroupIdKey               = "DOTEGE_CERT_GID"
-	envCertGroupIdDefault           = -1
-	envCertModeKey                  = "DOTEGE_CERT_MODE"
-	envCertModeDefault              = 0600
-	envDebugKey                     = "DOTEGE_DEBUG"
-	envDebugContainersValue         = "containers"
-	envDebugHeadersValue            = "headers"
-	envDebugHostnamesValue          = "hostnames"
-	envDnsProviderKey               = "DOTEGE_DNS_PROVIDER"
-	envAcmeEmailKey                 = "DOTEGE_ACME_EMAIL"
-	envAcmeEndpointKey              = "DOTEGE_ACME_ENDPOINT"
-	envAcmeKeyTypeKey               = "DOTEGE_ACME_KEY_TYPE"
-	envAcmeKeyTypeDefault           = "P384"
-	envAcmeCacheLocationKey         = "DOTEGE_ACME_CACHE_FILE"
-	envAcmeCacheLocationDefault     = "/data/config/certs.json"
-	envSignalContainerKey           = "DOTEGE_SIGNAL_CONTAINER"
-	envSignalContainerDefault       = ""
-	envSignalTypeKey                = "DOTEGE_SIGNAL_TYPE"
-	envSignalTypeDefault            = "HUP"
-	envTemplateDestinationKey       = "DOTEGE_TEMPLATE_DESTINATION"
-	envTemplateDestinationDefault   = "/data/output/haproxy.cfg"
-	envTemplateSourceKey            = "DOTEGE_TEMPLATE_SOURCE"
-	envTemplateSourceDefault        = "./templates/haproxy.cfg.tpl"
-	envUsersKey                     = "DOTEGE_USERS"
-	envUsersDefault                 = ""
-	envWildcardDomainsKey           = "DOTEGE_WILDCARD_DOMAINS"
-	envWildcardDomainsDefault       = ""
-	envProxyTagKey                  = "DOTEGE_PROXYTAG"
-	envProxyTagDefault              = ""
-	envCertificateDeploymentKey     = "DOTEGE_CERTIFICATE_DEPLOYMENT"
-	envCertificateDeploymentDefault = CertificateDeploymentCombined
-)
-
-const (
-	CertificateDeploymentCombined = "combined"
-	CertificateDeploymentSplit    = "splitkeys"
-	CertificateDeploymentDisabled = "disabled"
+	envDebugKey                   = "DOTEGE_DEBUG"
+	envDebugContainersValue       = "containers"
+	envDebugHeadersValue          = "headers"
+	envDebugHostnamesValue        = "hostnames"
+	envSignalContainerKey         = "DOTEGE_SIGNAL_CONTAINER"
+	envSignalContainerDefault     = ""
+	envSignalTypeKey              = "DOTEGE_SIGNAL_TYPE"
+	envSignalTypeDefault          = "HUP"
+	envTemplateDestinationKey     = "DOTEGE_TEMPLATE_DESTINATION"
+	envTemplateDestinationDefault = "/data/output/haproxy.cfg"
+	envTemplateSourceKey          = "DOTEGE_TEMPLATE_SOURCE"
+	envTemplateSourceDefault      = "./templates/haproxy.cfg.tpl"
+	envUsersKey                   = "DOTEGE_USERS"
+	envUsersDefault               = ""
+	envProxyTagKey                = "DOTEGE_PROXYTAG"
+	envProxyTagDefault            = ""
 )
 
 // Config is the user-definable configuration for Dotege.
 type Config struct {
-	Templates              []TemplateConfig
-	Signals                []ContainerSignal
-	DefaultCertDestination string
-	CertUid                int
-	CertGid                int
-	CertMode               os.FileMode
-	Acme                   AcmeConfig
-	WildCardDomains        []string
-	Users                  []User
-	ProxyTag               string
-	CertificateDeployment  string
+	Templates []TemplateConfig
+	Signals   []ContainerSignal
+	Users     []User
+	ProxyTag  string
 
 	DebugContainers bool
 	DebugHeaders    bool
@@ -87,27 +52,10 @@ type TemplateConfig struct {
 	Destination string
 }
 
-// ContainerSignal describes a container that should be sent a signal when the config/certs change.
+// ContainerSignal describes a container that should be sent a signal when the template output changes.
 type ContainerSignal struct {
 	Name   string
 	Signal string
-}
-
-// AcmeConfig describes the configuration to use for getting certs using ACME.
-type AcmeConfig struct {
-	Email         string
-	DnsProvider   string
-	Endpoint      string
-	KeyType       certcrypto.KeyType
-	CacheLocation string
-}
-
-func requiredStringVar(key string) (value string) {
-	value, ok := os.LookupEnv(key)
-	if !ok {
-		panic(fmt.Errorf("required environmental variable not defined: %s", key))
-	}
-	return
 }
 
 func optionalStringVar(key string, fallback string) (value string) {
@@ -116,24 +64,6 @@ func optionalStringVar(key string, fallback string) (value string) {
 		value = fallback
 	}
 	return
-}
-
-func optionalIntVar(key string, fallback int) int {
-	if value, ok := os.LookupEnv(key); ok {
-		if num, err := strconv.Atoi(value); err == nil {
-			return num
-		}
-	}
-	return fallback
-}
-
-func optionalFilemodeVar(key string, fallback os.FileMode) os.FileMode {
-	if value, ok := os.LookupEnv(key); ok {
-		if num, err := strconv.ParseInt(value, 8, 64); err == nil {
-			return os.FileMode(num)
-		}
-	}
-	return fallback
 }
 
 func createSignalConfig() []ContainerSignal {
@@ -159,29 +89,13 @@ func createConfig() *Config {
 				Destination: optionalStringVar(envTemplateDestinationKey, envTemplateDestinationDefault),
 			},
 		},
-		Signals:                createSignalConfig(),
-		DefaultCertDestination: optionalStringVar(envCertDestinationKey, envCertDestinationDefault),
-		CertGid:                optionalIntVar(envCertGroupIdKey, envCertGroupIdDefault),
-		CertUid:                optionalIntVar(envCertUserIdKey, envCertUserIdDefault),
-		CertMode:               optionalFilemodeVar(envCertModeKey, envCertModeDefault),
-		WildCardDomains:        splitList(optionalStringVar(envWildcardDomainsKey, envWildcardDomainsDefault)),
-		Users:                  readUsers(),
-		ProxyTag:               optionalStringVar(envProxyTagKey, envProxyTagDefault),
-		CertificateDeployment:  optionalStringVar(envCertificateDeploymentKey, envCertificateDeploymentDefault),
+		Signals:  createSignalConfig(),
+		Users:    readUsers(),
+		ProxyTag: optionalStringVar(envProxyTagKey, envProxyTagDefault),
 
 		DebugContainers: debug[envDebugContainersValue],
 		DebugHeaders:    debug[envDebugHeadersValue],
 		DebugHostnames:  debug[envDebugHostnamesValue],
-	}
-
-	if c.CertificateDeployment != CertificateDeploymentDisabled {
-		c.Acme = AcmeConfig{
-			DnsProvider:   requiredStringVar(envDnsProviderKey),
-			Email:         requiredStringVar(envAcmeEmailKey),
-			Endpoint:      optionalStringVar(envAcmeEndpointKey, lego.LEDirectoryProduction),
-			KeyType:       certcrypto.KeyType(optionalStringVar(envAcmeKeyTypeKey, envAcmeKeyTypeDefault)),
-			CacheLocation: optionalStringVar(envAcmeCacheLocationKey, envAcmeCacheLocationDefault),
-		}
 	}
 
 	return c

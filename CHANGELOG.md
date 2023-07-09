@@ -1,3 +1,12 @@
+# v2.0.0 (unreleased)
+
+## Breaking changes
+
+* Remove support for SSL certificate generation and deployment. I'm not aware
+  of any deployment of Dotege actually using this functionality, and it's a
+  non-trivial maintenance burden. If you _are_ using this functionality, please
+  get in touch (and stick with v1 for now!)
+
 # v1.3.1
 
 ## Bug fixes

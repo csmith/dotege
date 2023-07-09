@@ -12,6 +12,5 @@ COPY --from=build /go/bin/dotege /dotege
 COPY --from=build /notices /notices
 COPY templates /templates
 VOLUME /data/config
-VOLUME /data/certs
 VOLUME /data/output
 ENTRYPOINT ["/dotege"]

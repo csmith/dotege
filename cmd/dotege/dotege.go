@@ -1,14 +1,10 @@
 package main
 
 import (
-	"bytes"
 	"context"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"os/signal"
-	"path"
-	"strings"
 	"syscall"
 	"time"
 
@@ -69,15 +65,6 @@ func createTemplates(configs []TemplateConfig) Templates {
 	return templates
 }
 
-func createCertificateManager(config AcmeConfig) *CertificateManager {
-	cm := NewCertificateManager(loggers.main, config.Endpoint, config.KeyType, config.DnsProvider, config.CacheLocation)
-	err := cm.Init(config.Email)
-	if err != nil {
-		panic(err)
-	}
-	return cm
-}
-
 func main() {
 	loggers.main.Infof("Dotege %s is starting", GitSHA)
 
@@ -94,17 +81,10 @@ func main() {
 	}
 
 	templates := createTemplates(config.Templates)
-	var certificateManager *CertificateManager
-
-	if config.CertificateDeployment != CertificateDeploymentDisabled {
-		certificateManager = createCertificateManager(config.Acme)
-	}
 
 	containerMonitor := ContainerMonitor{client: dockerClient}
 
 	jitterTimer := time.NewTimer(time.Minute)
-	redeployTimer := time.NewTicker(time.Hour * 24)
-	updatedContainers := make(map[string]*Container)
 	containerEvents := make(chan ContainerEvent)
 
 	go func() {
@@ -123,7 +103,6 @@ func main() {
 						loggers.main.Debugf("Container added: %s", event.Container.Name)
 						loggers.containers.Debugf("New container with name %s has id: %s", event.Container.Name, event.Container.Id)
 						containers[event.Container.Id] = &event.Container
-						updatedContainers[event.Container.Id] = &event.Container
 						jitterTimer.Reset(100 * time.Millisecond)
 					} else {
 						loggers.main.Debugf("Container ignored due to proxy tag: %s (wanted: '%s', got: '%s')", event.Container.Name, config.ProxyTag, event.Container.Labels[labelProxyTag])
@@ -131,16 +110,13 @@ func main() {
 				case Removed:
 					loggers.main.Debugf("Container removed: %s", event.Container.Id)
 
-					_, inUpdated := updatedContainers[event.Container.Id]
 					_, inExisting := containers[event.Container.Id]
 					loggers.containers.Debugf(
-						"Removed container with ID %s, was in updated containers: %t, main containers: %t",
+						"Removed container with ID %s, was in main containers: %t",
 						event.Container.Id,
-						inUpdated,
 						inExisting,
 					)
 
-					delete(updatedContainers, event.Container.Id)
 					delete(containers, event.Container.Id)
 					jitterTimer.Reset(100 * time.Millisecond)
 				}
@@ -154,7 +130,6 @@ func main() {
 		for {
 			select {
 			case <-jitterTimer.C:
-				loggers.containers.Debugf("Processing updated containers: %v", updatedContainers)
 				updated := templates.Generate(struct {
 					Containers map[string]*Container
 					Hostnames  map[string]*Hostname
@@ -166,25 +141,6 @@ func main() {
 					groups(config.Users),
 					config.Users,
 				})
-
-				for name, container := range updatedContainers {
-					certDeployed := deployCertForContainer(certificateManager, container)
-					updated = updated || certDeployed
-					delete(updatedContainers, name)
-				}
-
-				if updated {
-					signalContainer(dockerClient)
-				}
-			case <-redeployTimer.C:
-				loggers.main.Info("Performing periodic certificate refresh")
-				updated := false
-
-				for _, container := range containers {
-					if deployCertForContainer(certificateManager, container) {
-						updated = true
-					}
-				}
 
 				if updated {
 					signalContainer(dockerClient)
@@ -235,99 +191,6 @@ func signalContainer(dockerClient *client.Client) {
 			loggers.main.Warnf("Couldn't signal container %s as it is not running", s.Name)
 		}
 	}
-}
-
-func deployCertForContainer(cm *CertificateManager, container *Container) bool {
-	if config.CertificateDeployment == CertificateDeploymentDisabled {
-		return false
-	}
-
-	hostnames := container.CertNames(config.WildCardDomains)
-	if len(hostnames) == 0 {
-		loggers.main.Debugf("No labels found for container %s", container.Name)
-		return false
-	}
-
-	cert, err := cm.GetCertificate(hostnames)
-	if err != nil {
-		loggers.main.Warnf("Unable to generate certificate for %s: %s", container.Name, err.Error())
-		return false
-	} else if config.CertificateDeployment == CertificateDeploymentSplit {
-		return deploySplitCert(cert)
-	} else {
-		return deployCombinedCert(cert)
-	}
-}
-
-func deploySplitCert(certificate *SavedCertificate) bool {
-	name := fmt.Sprintf("%s.pem", strings.ReplaceAll(certificate.Domains[0], "*", "_"))
-	target := path.Join(config.DefaultCertDestination, name)
-
-	buf, _ := ioutil.ReadFile(target)
-	if bytes.Equal(buf, certificate.Certificate) {
-		loggers.main.Debugf("Certificate was up to date: %s", target)
-		return false
-	}
-
-	err := ioutil.WriteFile(target, certificate.Certificate, config.CertMode)
-	if err != nil {
-		loggers.main.Warnf("Unable to write certificate %s - %s", target, err.Error())
-		return false
-	}
-
-	if err = os.Chown(target, config.CertUid, config.CertGid); err != nil {
-		loggers.main.Warnf("Unable to chown certificate %s - %s", target, err.Error())
-		return false
-	}
-
-	name = fmt.Sprintf("%s.key", strings.ReplaceAll(certificate.Domains[0], "*", "_"))
-	target = path.Join(config.DefaultCertDestination, name)
-
-	buf, _ = ioutil.ReadFile(target)
-	if bytes.Equal(buf, certificate.PrivateKey) {
-		loggers.main.Debugf("Key was up to date: %s", target)
-		return false
-	}
-
-	err = ioutil.WriteFile(target, certificate.PrivateKey, config.CertMode)
-	if err != nil {
-		loggers.main.Warnf("Unable to write key %s - %s", target, err.Error())
-		return false
-	}
-
-	if err = os.Chown(target, config.CertUid, config.CertGid); err != nil {
-		loggers.main.Warnf("Unable to chown key %s - %s", target, err.Error())
-		return false
-	}
-
-	loggers.main.Infof("Updated certificate file %s", target)
-	return true
-}
-
-func deployCombinedCert(certificate *SavedCertificate) bool {
-	name := fmt.Sprintf("%s.pem", strings.ReplaceAll(certificate.Domains[0], "*", "_"))
-	target := path.Join(config.DefaultCertDestination, name)
-	content := append(certificate.Certificate, certificate.PrivateKey...)
-
-	buf, _ := ioutil.ReadFile(target)
-	if bytes.Equal(buf, content) {
-		loggers.main.Debugf("Certificate was up to date: %s", target)
-		return false
-	}
-
-	err := ioutil.WriteFile(target, content, config.CertMode)
-	if err != nil {
-		loggers.main.Warnf("Unable to write certificate %s - %s", target, err.Error())
-		return false
-	}
-
-	if err := os.Chown(target, config.CertUid, config.CertGid); err != nil {
-		loggers.main.Warnf("Unable to chown certificate %s - %s", target, err.Error())
-		return false
-	}
-
-	loggers.main.Infof("Updated certificate file %s", target)
-	return true
 }
 
 func groups(users []User) []string {

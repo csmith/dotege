@@ -88,27 +88,3 @@ func TestContainer_Headers(t *testing.T) {
 		})
 	}
 }
-
-func TestContainer_CertNames(t *testing.T) {
-	tests := []struct {
-		name  string
-		label string
-		want  []string
-	}{
-		{"single domain", "example.com", []string{"example.com"}},
-		{"multiple domains with spaces", "example.com example.net", []string{"example.com", "example.net"}},
-		{"multiple domains with commas", "example.com,example.net", []string{"example.com", "example.net"}},
-		{"wildcard domains", "www.example.wc foo.example.wc bar.example.wc", []string{"*.example.wc"}},
-		{"mixed wildcards", "example.com foo.example.wc foo.example.com", []string{"example.com", "*.example.wc", "foo.example.com"}},
-	}
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &Container{
-				Labels: map[string]string{labelVhost: tt.label},
-			}
-			if got := c.CertNames([]string{"example.wc"}); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("CertNames() = %v, want %v", got, tt.want)
-			}
-		})
-	}
-}

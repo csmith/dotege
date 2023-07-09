@@ -73,53 +73,6 @@ func (c *Container) Headers() map[string]string {
 	return res
 }
 
-// CertNames returns a list of names required on a certificate for this container, taking into account wildcard
-// configuration.
-func (c *Container) CertNames(wildcards []string) []string {
-	if label, ok := c.Labels[labelVhost]; ok {
-		return applyWildcards(splitList(label), wildcards)
-	} else {
-		return []string{}
-	}
-}
-
-// applyWildcards replaces domains with matching wildcards
-func applyWildcards(domains []string, wildcards []string) (result []string) {
-	result = []string{}
-	required := make(map[string]bool)
-	for _, domain := range domains {
-		found := false
-		for _, wildcard := range wildcards {
-			if wildcardMatches(wildcard, domain) {
-				if !required["*."+wildcard] {
-					result = append(result, "*."+wildcard)
-					required["*."+wildcard] = true
-				}
-				found = true
-				break
-			}
-		}
-
-		if !found && !required[domain] {
-			result = append(result, domain)
-			required[domain] = true
-		}
-	}
-	return
-}
-
-// wildcardMatches tests if the given wildcard matches the domain
-func wildcardMatches(wildcard, domain string) bool {
-	if len(domain) <= len(wildcard) {
-		return false
-	}
-
-	pivot := len(domain) - len(wildcard) - 1
-	start := domain[:pivot]
-	end := domain[pivot+1:]
-	return domain[pivot] == '.' && end == wildcard && !strings.ContainsRune(start, '.')
-}
-
 // Containers maps container IDs to their corresponding information
 type Containers map[string]*Container
 
@@ -156,7 +109,7 @@ func (c Containers) Hostnames() (hostnames map[string]*Hostname) {
 	return
 }
 
-// Hostname describes a DNS name used for proxying, retrieving certificates, etc.
+// Hostname describes a hostname used for proxying.
 type Hostname struct {
 	Name         string
 	Alternatives map[string]string
