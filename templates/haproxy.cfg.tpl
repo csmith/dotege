@@ -21,17 +21,6 @@ defaults
 
 {{- if len .Groups | lt 0 }}
 
-userlist dotege
-    {{- range .Groups }}
-    group {{.}}
-    {{- end -}}
-
-    {{- range .Users }}
-    user {{.Name}} password {{.Password}}
-    {{- if len .Groups | lt 0 }} groups {{ .Groups | join "," }}{{ end }}
-    {{- end }}
-{{- end }}
-
 frontend main
     mode    http
     bind    :::443 v4v6 ssl strict-sni alpn h2,http/1.1 crt /certs/
@@ -57,9 +46,5 @@ backend {{ .Name | replace "." "_" }}
     {{- end -}}
     {{- range $k, $v := .Headers }}
     http-response set-header {{ $k }} "{{ $v | replace "\"" "\\\"" }}"
-    {{- end -}}
-    {{- if .RequiresAuth }}
-    acl authed_{{ .Name | replace "." "_" }} http_auth(dotege) {{ .AuthGroup }}
-    http-request auth if !authed_{{ .Name | replace "." "_" }}
     {{- end -}}
 {{ end }}

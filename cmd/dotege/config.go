@@ -1,11 +1,8 @@
 package main
 
 import (
-	"fmt"
 	"os"
 	"strings"
-
-	"gopkg.in/yaml.v2"
 )
 
 const (
@@ -17,8 +14,6 @@ const (
 	envTemplateDestinationDefault = "/data/output/haproxy.cfg"
 	envTemplateSourceKey          = "DOTEGE_TEMPLATE_SOURCE"
 	envTemplateSourceDefault      = "./templates/haproxy.cfg.tpl"
-	envUsersKey                   = "DOTEGE_USERS"
-	envUsersDefault               = ""
 	envProxyTagKey                = "DOTEGE_PROXYTAG"
 	envProxyTagDefault            = ""
 )
@@ -27,15 +22,7 @@ const (
 type Config struct {
 	Templates []TemplateConfig
 	Signals   []ContainerSignal
-	Users     []User
 	ProxyTag  string
-}
-
-// User holds the details of a single user used for ACL purposes.
-type User struct {
-	Name     string   `yaml:"name"`
-	Password string   `yaml:"password"`
-	Groups   []string `yaml:"groups"`
 }
 
 // TemplateConfig configures a single template for the generator.
@@ -81,20 +68,10 @@ func createConfig() *Config {
 			},
 		},
 		Signals:  createSignalConfig(),
-		Users:    readUsers(),
 		ProxyTag: optionalStringVar(envProxyTagKey, envProxyTagDefault),
 	}
 
 	return c
-}
-
-func readUsers() []User {
-	var users []User
-	err := yaml.Unmarshal([]byte(optionalStringVar(envUsersKey, envUsersDefault)), &users)
-	if err != nil {
-		panic(fmt.Errorf("unable to parse users struct: %s", err))
-	}
-	return users
 }
 
 func splitList(input string) (result []string) {

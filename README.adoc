@@ -11,10 +11,10 @@ relevant networks.
 
 === Version 1 vs version 2
 
-Dotege 1.0 had support for obtaining certificates from an ACME provider and
-deploying them alongside the configuration file. This was removed in 2.0 as
-in most cases it's better to use a separate tool for this, and it adds a
-significant amount of complexity to Dotege to maintain it.
+Dotege 1.0 supported a number of features removed from v2, including specific
+support for generating ACLs and mechanisms for obtaining and deploying TLS
+certificates from ACME servers. These features were removed so that Dotege
+can focus on the core premise of generating templates.
 
 === Configuration
 
@@ -40,18 +40,9 @@ Location to write the templated configuration file to. Defaults to `/data/output
 Path to a template to use to generate configuration. Defaults to `./templates/haproxy.cfg.tpl`,
 which is a bundled basic template for generating HAProxy configurations.
 
-`DOTEGE_USERS`::
-A YAML (or JSON) list of users, their password hashes, and their group memberships, to use for
-ACLs. See <<acls,Using ACLs>> below for detailed usage.
-
 === Docker labels
 
 Dotege operates by parsing labels applied to docker containers. It understands the following:
-
-`com.chameth.auth`::
-Specifies the name of an auth group (which must be defined in the DOTEGE_USERS env variable)
-that users are required to be in to access the container. See <<acls,Using ACLs>> below for
-detailed usage.
 
 `com.chameth.headers`::
 Specifies response headers to be sent to the client for all requests to the container. Any
@@ -125,93 +116,6 @@ template. This means the haproxy container should be on the same network as
 the containers it's proxying to. I recommend creating a global 'web' network
 (or similar) that all web-facing containers sit in.
 
-== Using ACLs [[acls]]
-
-Dotege, with the default HAProxy template, allows you to specify users in an
-environment variable and for individual containers to then require a specific
-group of users using labels.
-
-=== Defining users
-
-Dotege expects the DOTEGE_USERS environment variable to contain a list of users,
-and each user must have a "name" and "password" property, and an optional "groups"
-property. For example if we want our user list to look like this:
-
-[source,yaml]
-----
-- name: chris
-  password: hashedPasswordHere
-  groups: [admins]
-- name: bob
-  password: hashedPasswordHere
-----
-
-Then we'd use the following environment variable:
-
-[source]
-----
-DOTEGE_USERS="- name: chris\n  password: hashedPasswordHere\n  groups: [admins]\n- name: bob\n  password: hashedPasswordHere"
-----
-
-Alternatively, removing the need for line breaks:
-
-[source]
-----
-DOTEGE_USERS="[{name: chris, password: hashedPasswordHere, groups: [admins]}, {name: bob, password: hashedPasswordHere}]"
-----
-
-If you are using configuring the container using YAML (e.g. in a docker-compose file),
-you can use the pipe operator to treat YAML content as a scalar, which is vastly easier to
-use:
-
-[source,yaml]
-----
-services:
-  dotege:
-    environment:
-      DOTEGE_USERS: |
-        - name: chris
-          password: hashedPasswordHere
-          groups: [admins]
-        - name: bob
-          password: hashedPasswordHere
-----
-
-For HAProxy, passwords are hashed using the crypt(3) system call - the easiest
-way to generate them is using the `mkpassword` utility.
-
-NB: If you are using docker-compose then any `$` characters in the hashed password
-will need to be escaped by doubling them up (i.e. replace `$` with `$$`).
-
-=== Restricting access
-
-To require basic authentication, the container should have the `com.chameth.auth` label.
-The label should be a space separated list of groups that are allowed access; if it
-is blank then all defined users are allowed.
-
-For example:
-
-[source,yaml]
-----
-services:
-  public:
-    labels:
-      com.chameth.vhost: "public.example.com"
-  private1:
-    labels:
-      com.chameth.vhost: "private1.example.com"
-      com.chameth.auth: ""
-  private2:
-    labels:
-      com.chameth.vhost: "private2.example.com"
-      com.chameth.auth: "admins"
-----
-
-Of these services, `public` won't require any authentication. `private1` will
-require any valid user (so from our example above, either "chris" or "bob"),
-while `private2` will require a user in the "admins" group (so from our example
-above only "chris" would be allowed access).
-
 == Writing templates
 
 Dotege comes with two templates out of the box - one to create a working
@@ -234,18 +138,12 @@ Dotege provides the following data to templates:
 ** Port - the port the container accepts traffic on, or -1 if it couldn't be determined
 ** Ports - all ports exposed by the container
 ** ShouldProxy - boolean indicating whether the container has a hostname and port
-* Groups - a list of unique group names specified in the `DOTEGE_USERS` key
 * Hostnames - a map of known primary hostnames to their details:
 ** Alternatives - a map of alternate names for this hostname
 ** AuthGroup - the name of the group users must be a member of to access this hostname (if RequiresAuth is true)
 ** Containers - all containers that accept traffic for this hostname
 ** Headers - map of header names to values from `com.chameth.headers` labels
 ** Name - the name of the primary hostname
-** RequiresAuth - boolean indicating whether authentication is required
-* Users - a list of users defined in the `DOTEGE_USERS` key
-** Name - the username of the user
-** Password - the (hashed) password of the user
-** Groups - list of groups the user belongs to
 
 Most templates will want to act on the `Hostnames` data primarily, as this groups up
 containers that accept traffic to the same domains, and avoids having to deal with

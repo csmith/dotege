@@ -1,11 +1,17 @@
 # v2.0.0 (unreleased)
 
-## Breaking changes
+## Major breaking changes
 
 * Remove support for SSL certificate generation and deployment. I'm not aware
   of any deployment of Dotege actually using this functionality, and it's a
   non-trivial maintenance burden. If you _are_ using this functionality, please
   get in touch (and stick with v1 for now!)
+* Remove support for ACLs and users. This was very difficult to configure, and
+  is an extremely niche use case. This will be replaced with a more general way
+  to pass custom data to templates, which can then use it how they see fit.
+
+## Other changes
+
 * The `DOTEGE_DEBUG` env var is no longer used. Dotege's default logging will
   be slightly more verbose.
 * The format of Dotege's logs have changed. They are now formatted using Go's

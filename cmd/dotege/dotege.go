@@ -107,13 +107,9 @@ func main() {
 				updated := templates.Generate(struct {
 					Containers map[string]*Container
 					Hostnames  map[string]*Hostname
-					Groups     []string
-					Users      []User
 				}{
 					containers,
 					containers.Hostnames(),
-					groups(config.Users),
-					config.Users,
 				})
 
 				if updated {
@@ -153,19 +149,4 @@ func signalContainer(dockerClient *client.Client) {
 			log.Printf("Couldn't signal container %s as it is not known", s.Name)
 		}
 	}
-}
-
-func groups(users []User) []string {
-	groups := make(map[string]bool)
-	for i := range users {
-		for j := range users[i].Groups {
-			groups[users[i].Groups[j]] = true
-		}
-	}
-
-	var res []string
-	for g := range groups {
-		res = append(res, g)
-	}
-	return res
 }

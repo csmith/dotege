@@ -10,7 +10,6 @@ const (
 	labelVhost    = "com.chameth.vhost"
 	labelProxy    = "com.chameth.proxy"
 	labelProxyTag = "com.chameth.proxytag"
-	labelAuth     = "com.chameth.auth"
 	labelHeaders  = "com.chameth.headers"
 )
 
@@ -102,8 +101,6 @@ type Hostname struct {
 	Alternatives map[string]string
 	Containers   []*Container
 	Headers      map[string]string
-	RequiresAuth bool
-	AuthGroup    string
 }
 
 // NewHostname creates a new hostname with the given name
@@ -121,11 +118,6 @@ func (h *Hostname) update(alternates []string, container *Container) {
 
 	for _, a := range alternates {
 		h.Alternatives[a] = a
-	}
-
-	if label, ok := container.Labels[labelAuth]; ok {
-		h.RequiresAuth = true
-		h.AuthGroup = label
 	}
 
 	for k, v := range container.Headers() {
