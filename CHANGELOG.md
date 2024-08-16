@@ -17,6 +17,13 @@
 * The format of Dotege's logs have changed. They are now formatted using Go's
   standard logger instead of a third-party logging tool.
 
+# v1.3.2
+
+## Other changes
+
+* Update golang.org/x/net dependency to fix building on newer Go versions
+* Update to Go 1.23
+
 # v1.3.1
 
 ## Bug fixes
