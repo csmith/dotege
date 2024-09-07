@@ -19,8 +19,6 @@ defaults
     compression type text/plain text/css application/json application/javascript application/x-javascript text/xml application/xml application/xml+rss text/javascript
     default-server init-addr last,libc,none check resolvers docker_resolver
 
-{{- if len .Groups | lt 0 }}
-
 frontend main
     mode    http
     bind    :::443 v4v6 ssl strict-sni alpn h2,http/1.1 crt /certs/
