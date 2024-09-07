@@ -11,29 +11,19 @@ import (
 	"time"
 )
 
-type DockerClient interface {
+type StreamingDockerClient interface {
 	Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error)
 	ContainerList(ctx context.Context, options container.ListOptions) ([]types.Container, error)
 	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
 }
 
-type ContainerMonitor struct {
-	client DockerClient
+// StreamingMonitor listens to events emitted via the docker client to determine when containers are created
+// or stopped.
+type StreamingMonitor struct {
+	client StreamingDockerClient
 }
 
-type Operation int
-
-const (
-	Added = iota
-	Removed
-)
-
-type ContainerEvent struct {
-	Operation Operation
-	Container Container
-}
-
-func (m ContainerMonitor) monitor(ctx context.Context, output chan<- ContainerEvent) error {
+func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerEvent) error {
 	ctx, cancel := context.WithCancel(ctx)
 	stream, errors := m.startEventStream(ctx)
 	timer := time.NewTimer(30 * time.Second)
@@ -81,7 +71,7 @@ func (m ContainerMonitor) monitor(ctx context.Context, output chan<- ContainerEv
 	}
 }
 
-func (m ContainerMonitor) startEventStream(ctx context.Context) (<-chan events.Message, <-chan error) {
+func (m *StreamingMonitor) startEventStream(ctx context.Context) (<-chan events.Message, <-chan error) {
 	args := filters.NewArgs()
 	args.Add("type", "container")
 	args.Add("event", "create")
@@ -89,7 +79,7 @@ func (m ContainerMonitor) startEventStream(ctx context.Context) (<-chan events.M
 	return m.client.Events(ctx, events.ListOptions{Filters: args})
 }
 
-func (m ContainerMonitor) publishExistingContainers(ctx context.Context, output chan<- ContainerEvent) error {
+func (m *StreamingMonitor) publishExistingContainers(ctx context.Context, output chan<- ContainerEvent) error {
 	res, err := m.client.ContainerList(ctx, container.ListOptions{})
 	if err != nil {
 		return fmt.Errorf("unable to list containers: %s", err.Error())
@@ -109,7 +99,7 @@ func (m ContainerMonitor) publishExistingContainers(ctx context.Context, output 
 	return nil
 }
 
-func (m ContainerMonitor) inspectContainer(ctx context.Context, id string) (error, Container) {
+func (m *StreamingMonitor) inspectContainer(ctx context.Context, id string) (error, Container) {
 	c, err := m.client.ContainerInspect(ctx, id)
 	if err != nil {
 		return err, Container{}

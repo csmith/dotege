@@ -12,6 +12,9 @@
 
 ## Other changes
 
+* Added a `DOTEGE_POLL` option that makes Dotege poll the container list
+  instead of using events. This may help to mitigate some issues caused by
+  strange state when using docker-compose.
 * The `DOTEGE_DEBUG` env var is no longer used. Dotege's default logging will
   be slightly more verbose.
 * The format of Dotege's logs have changed. They are now formatted using Go's

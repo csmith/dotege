@@ -20,6 +20,12 @@ can focus on the core premise of generating templates.
 
 Dotege is configured using environment variables:
 
+`DOTEGE_POLL`::
+If set, Dotege will poll the Docker engine at this interval. Valid time units
+are "ns", "us" (or "µs"), "ms", "s", "m", "h", and can be combined e.g. `1m30s`.
+If not set, Dotege will poll once on startup, and then rely on events from the
+Docker engine to update its state.
+
 `DOTEGE_PROXYTAG`::
 Only containers with a matching `com.chameth.proxytag` label will be processed by
 Dotege. This allows you to run multiple instances that handle separate containers.

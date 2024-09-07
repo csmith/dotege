@@ -20,6 +20,7 @@ var (
 	templateSource      = flag.String("template-source", "./templates/haproxy.cfg.tpl", "The template to use")
 	templateDestination = flag.String("template-destination", "/data/output/haproxy.cfg", "The destination to write the template to")
 	proxyTag            = flag.String("proxytag", "", "If set, ignore any containers that do not have this tag as a label")
+	poll                = flag.Duration("poll", time.Duration(int64(0)), "If set, how frequently to poll container lists (instead of using events)")
 
 	containers = make(Containers)
 	GitSHA     string
@@ -40,13 +41,20 @@ func main() {
 
 	templates := createTemplates()
 
-	containerMonitor := ContainerMonitor{client: dockerClient}
+	var containerMonitor Monitor
+	if *poll > time.Millisecond {
+		log.Printf("Using polling with interval %s", *poll)
+		containerMonitor = &PollingMonitor{client: dockerClient, interval: *poll}
+	} else {
+		log.Printf("Using events")
+		containerMonitor = &StreamingMonitor{client: dockerClient}
+	}
 
 	jitterTimer := time.NewTimer(time.Minute)
 	containerEvents := make(chan ContainerEvent)
 
 	go func() {
-		if err := containerMonitor.monitor(ctx, containerEvents); err != nil {
+		if err := containerMonitor.Monitor(ctx, containerEvents); err != nil {
 			log.Fatalf("Error monitoring containers: %v", err)
 		}
 	}()
