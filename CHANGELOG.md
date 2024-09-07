@@ -1,4 +1,4 @@
-# v2.0.0 (unreleased)
+# v2.0.0
 
 ## Major breaking changes
 
