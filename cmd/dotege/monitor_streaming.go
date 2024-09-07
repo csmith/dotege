@@ -36,7 +36,16 @@ func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerE
 	for {
 		select {
 		case event := <-stream:
-			if event.Action == "create" {
+			if event.Action == "destroy" || event.Action == "rename" {
+				output <- ContainerEvent{
+					Operation: Removed,
+					Container: Container{
+						Id: event.Actor.ID,
+					},
+				}
+			}
+
+			if event.Action == "create" || event.Action == "rename" {
 				err, c := m.inspectContainer(ctx, event.Actor.ID)
 				if err != nil {
 					cancel()
@@ -45,13 +54,6 @@ func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerE
 				output <- ContainerEvent{
 					Operation: Added,
 					Container: c,
-				}
-			} else {
-				output <- ContainerEvent{
-					Operation: Removed,
-					Container: Container{
-						Id: event.Actor.ID,
-					},
 				}
 			}
 
@@ -76,6 +78,7 @@ func (m *StreamingMonitor) startEventStream(ctx context.Context) (<-chan events.
 	args.Add("type", "container")
 	args.Add("event", "create")
 	args.Add("event", "destroy")
+	args.Add("event", "rename")
 	return m.client.Events(ctx, events.ListOptions{Filters: args})
 }
 

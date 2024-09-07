@@ -1,3 +1,11 @@
+# v2.1.0
+
+## Other changes
+
+* When streaming events, also take notice of rename events. This may fix issues
+  when using docker-compose, which sometimes creates a container with a prefixed
+  name and then renames it immediately.
+
 # v2.0.0
 
 ## Major breaking changes
