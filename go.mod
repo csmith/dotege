@@ -10,8 +10,8 @@ require (
 	github.com/docker/go-connections v0.5.0
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
-	golang.org/x/net v0.29.0
-	golang.org/x/sys v0.25.0 // indirect
+	golang.org/x/net v0.30.0
+	golang.org/x/sys v0.26.0 // indirect
 )
 
 require github.com/csmith/envflag v1.0.0
