@@ -6,7 +6,7 @@ toolchain go1.24.1
 
 require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect
-	github.com/docker/docker v28.2.1+incompatible
+	github.com/docker/docker v28.2.2+incompatible
 	github.com/docker/go-connections v0.5.0
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
