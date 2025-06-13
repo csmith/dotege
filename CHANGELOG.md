@@ -5,6 +5,7 @@
 ### Other changes
 
 * Dockerfile now uses `ghcr.io/greboid/dockerbase/nonroot` as a base.
+* Dependency updates
 
 ## 2.1.0 - 2024-09-07
 

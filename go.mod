@@ -12,7 +12,7 @@ require (
 	golang.org/x/sys v0.33.0 // indirect
 )
 
-require github.com/csmith/envflag v1.0.0
+require github.com/csmith/envflag/v2 v2.0.0
 
 require (
 	github.com/containerd/errdefs v1.0.0 // indirect

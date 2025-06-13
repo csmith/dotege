@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/csmith/envflag"
+	"github.com/csmith/envflag/v2"
 	"github.com/docker/docker/client"
 )
 
