@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.1 - 2025-06-13
+
+### Other changes
+
+* Fixed error in revised Dockerfile
+
 ## 2.2.0 - 2025-06-13
 
 ### Other changes
