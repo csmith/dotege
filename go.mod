@@ -1,8 +1,6 @@
 module github.com/csmith/dotege/v2
 
-go 1.23.0
-
-toolchain go1.24.1
+go 1.24.4
 
 require (
 	github.com/Microsoft/go-winio v0.5.2 // indirect

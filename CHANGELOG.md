@@ -1,14 +1,22 @@
-# v2.1.0
+# Changelog
 
-## Other changes
+## 2.2.0 - 2025-06-13
+
+### Other changes
+
+* Dockerfile now uses `ghcr.io/greboid/dockerbase/nonroot` as a base.
+
+## 2.1.0 - 2024-09-07
+
+### Other changes
 
 * When streaming events, also take notice of rename events. This may fix issues
   when using docker-compose, which sometimes creates a container with a prefixed
   name and then renames it immediately.
 
-# v2.0.0
+## 2.0.0 - 2024-09-07
 
-## Major breaking changes
+### Major breaking changes
 
 * Remove support for SSL certificate generation and deployment. I'm not aware
   of any deployment of Dotege actually using this functionality, and it's a
@@ -18,7 +26,7 @@
   is an extremely niche use case. This will be replaced with a more general way
   to pass custom data to templates, which can then use it how they see fit.
 
-## Other changes
+### Other changes
 
 * Added a `DOTEGE_POLL` option that makes Dotege poll the container list
   instead of using events. This may help to mitigate some issues caused by
@@ -28,44 +36,44 @@
 * The format of Dotege's logs have changed. They are now formatted using Go's
   standard logger instead of a third-party logging tool.
 
-# v1.3.2
+## 1.3.2 - 2024-08-16
 
-## Other changes
+### Other changes
 
 * Update golang.org/x/net dependency to fix building on newer Go versions
 * Update to Go 1.23
 
-# v1.3.1
+## 1.3.1 - 2022-03-25
 
-## Bug fixes
+### Bug fixes
 
 * Domain names in certificates and templates are now ordered consistently,
   in the order they're specified in the `com.chameth.vhost` label. Previously,
   these were accidentally alphabetised in a lot of situations.
 
-# v1.3.0
+## 1.3.0 - 2022-03-25
 
-## Features
+### Features
 
 * Dotege can now deploy private keys separately to their corresponding
   certificates by setting `DOTEGE_CERTIFICATE_DEPLOYMENT` to `splitkeys`.
   (Thanks @Greboid)
 
-## Other changes
+### Other changes
 
 * Update to Go 1.18
 * Miscellaneous dependency updates
 
-# v1.2.0
+## 1.2.0 - 2022-03-06
 
-## Features
+### Features
 
 * Dotege can now be configured to not manage TLS certificates at all.
   When `DOTEGE_CERTIFICATE_DEPLOYMENT` is set to `disabled` no certificates
   will be requested or written to disk, and all certificate-related options
   are ignored.
 
-## Other changes
+### Other changes
 
 * Updated the default haproxy template (thanks @Greboid):
   * Updated cipher suites in line with Mozilla's current intermediate recommendations
@@ -73,9 +81,9 @@
   * Remove any Server header returned from upstream
 * Miscellaneous dependency updates
 
-# v1.1.0
+## 1.1.0 - 2021-10-25
 
-## Features
+### Features
 
 * You can now limit what containers Dotege will monitor by specifying the
   `DOTEGE_PROXYTAG` env var. Only containers with a matching `com.chameth.proxytag`
@@ -85,7 +93,11 @@
   `-tags lego_httpreq` only includes HTTPREQ and shaves around 30MB from the
   resulting binary.
 
-## Other changes
+### Other changes
 
 * Update to Go 1.17
 * Miscellaneous dependency updates
+
+## 1.0.0 - 2021-09-01
+
+_Initial release._
