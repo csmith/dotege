@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.3.0 - 2025-06-23
+
+### Other changes
+
+* Dotege will now perform version negotiation when communicating with Docker.
+  This will ensure it works even if the docker daemon is older than the library
+  used by Dotege.
+
 ## 2.2.1 - 2025-06-13
 
 ### Other changes
