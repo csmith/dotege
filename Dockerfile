@@ -6,7 +6,7 @@ RUN set -eux; \
     CGO_ENABLED=0 GO111MODULE=on go install -ldflags "-X main.GitSHA=$(git rev-parse --short HEAD)" ./cmd/dotege; \
     go run github.com/google/go-licenses@latest save ./... --save_path=/notices;
 
-FROM ghcr.io/greboid/dockerbase/nonroot:1.20250326.0
+FROM ghcr.io/greboid/dockerbase/nonroot:1.20250716.0
 COPY --from=build /go/bin/dotege /dotege
 COPY --from=build /notices /notices
 COPY templates /templates
