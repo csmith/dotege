@@ -5,7 +5,7 @@ go 1.25.0
 require (
 	github.com/Microsoft/go-winio v0.6.2 // indirect
 	github.com/docker/docker v28.5.2+incompatible
-	github.com/docker/go-connections v0.8.0
+	github.com/docker/go-connections v0.8.1
 	github.com/docker/go-units v0.4.0 // indirect
 	github.com/opencontainers/go-digest v1.0.0 // indirect
 	golang.org/x/net v0.57.0
