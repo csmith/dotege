@@ -150,22 +150,8 @@ func sendSignal(dockerClient *client.Client) {
 		return
 	}
 
-	var container *Container
-	for _, c := range containers {
-		if c.Name == *signalContainer {
-			container = c
-		}
-	}
-
-	if container != nil {
-		log.Printf("Killing container %s (%s) with signal %s", container.Name, container.Id, *signalType)
-		err := dockerClient.ContainerKill(context.Background(), container.Id, *signalType)
-		if err != nil {
-			log.Printf("Unable to send signal %s to container %s: %v", *signalType, *signalContainer, err)
-		}
-	} else if *proxyTag != "" {
-		log.Printf("Couldn't signal container %s as it is not known. Does it have the correct proxytag set?", *signalContainer)
-	} else {
-		log.Printf("Couldn't signal container %s as it is not known", *signalContainer)
+	log.Printf("Killing container %s with signal %s", *signalContainer, *signalType)
+	if err := dockerClient.ContainerKill(context.Background(), *signalContainer, *signalType); err != nil {
+		log.Printf("Unable to send signal %s to container %s: %v", *signalType, *signalContainer, err)
 	}
 }

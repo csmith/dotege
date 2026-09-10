@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.4.0 - 2026-09-10 
+
+* Signals can target containers by configured name or ID, regardless of proxytag.
+
 ## 2.3.0 - 2025-06-23
 
 ### Other changes

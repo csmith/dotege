@@ -33,7 +33,8 @@ If not specified, any container without a `com.chameth.proxytag` label will be
 included.
 
 `DOTEGE_SIGNAL_CONTAINER`::
-The name of a container that should be sent a signal when the template is changed.
+The name or ID of a container that should be sent a signal when the template is changed.
+The target does not need to match the proxytag filter.
 No signal is sent if not specified.
 
 `DOTEGE_SIGNAL_TYPE`::
@@ -65,8 +66,8 @@ nginx server, for instance, as the nginx image exposes port 80 (only).
 `com.chameth.proxytag`::
 Arbitrary tag to control which containers an instance of Dotege will deal with. If specified,
 the container will be ignored by any instance of Dotege that does not have the same value
-passed in using the `DOTEGE_PROXYTAG` env var.  Note this should also be set on the container
-specified in DOTEGE_SIGNAL_CONTAINER if set, or it will be ignored and not restarted.
+passed in using the `DOTEGE_PROXYTAG` env var. This filter only applies to template inputs,
+not the container specified in `DOTEGE_SIGNAL_CONTAINER`.
 
 `com.chameth.vhost`::
 Comma- or space-delimited list of hostnames that the container will handle requests for.
