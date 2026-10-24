@@ -59,7 +59,7 @@ func main() {
 		containerMonitor = &PollingMonitor{client: dockerClient, interval: *poll}
 	} else {
 		log.Printf("Using events")
-		containerMonitor = &StreamingMonitor{client: dockerClient}
+		containerMonitor = &StreamingMonitor{client: dockerClient, resyncInterval: 30 * time.Second}
 	}
 
 	jitterTimer := time.NewTimer(time.Minute)

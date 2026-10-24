@@ -20,14 +20,16 @@ type StreamingDockerClient interface {
 // StreamingMonitor listens to events emitted via the docker client to determine when containers are created
 // or stopped.
 type StreamingMonitor struct {
-	client StreamingDockerClient
+	client         StreamingDockerClient
+	resyncInterval time.Duration
 }
 
 func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerEvent) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 	stream, errors := m.startEventStream(ctx)
-	timer := time.NewTimer(30 * time.Second)
+	ticker := time.NewTicker(m.resyncInterval)
+	defer ticker.Stop()
 
 	if err := m.publishExistingContainers(ctx, output); err != nil {
 		return err
@@ -59,7 +61,7 @@ func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerE
 		case err := <-errors:
 			return err
 
-		case <-timer.C:
+		case <-ticker.C:
 			if err := m.publishExistingContainers(ctx, output); err != nil {
 				return err
 			}
