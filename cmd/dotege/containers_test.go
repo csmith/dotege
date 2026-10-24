@@ -22,16 +22,19 @@ func TestContainer_ShouldProxy(t *testing.T) {
 		{"Vhost and invalid port", fields{Labels: map[string]string{labelVhost: "example.com", labelProxy: "bob"}}, false},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &Container{
-				Id:     tt.fields.Id,
-				Name:   tt.fields.Name,
-				Labels: tt.fields.Labels,
-			}
-			if got := c.ShouldProxy(); got != tt.want {
-				t.Errorf("ShouldProxy() = %v, want %v", got, tt.want)
-			}
-		})
+		t.Run(
+			tt.name,
+			func(t *testing.T) {
+				c := &Container{
+					Id:     tt.fields.Id,
+					Name:   tt.fields.Name,
+					Labels: tt.fields.Labels,
+				}
+				if got := c.ShouldProxy(); got != tt.want {
+					t.Errorf("ShouldProxy() = %v, want %v", got, tt.want)
+				}
+			},
+		)
 	}
 }
 
@@ -56,12 +59,15 @@ func TestContainer_Port(t *testing.T) {
 		{"Label with one port", Container{Labels: map[string]string{labelProxy: "8080"}, Ports: []int{8081}}, 8080},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &tt.container
-			if got := c.Port(); got != tt.want {
-				t.Errorf("Port() = %v, want %v", got, tt.want)
-			}
-		})
+		t.Run(
+			tt.name,
+			func(t *testing.T) {
+				c := &tt.container
+				if got := c.Port(); got != tt.want {
+					t.Errorf("Port() = %v, want %v", got, tt.want)
+				}
+			},
+		)
 	}
 }
 
@@ -75,17 +81,24 @@ func TestContainer_Headers(t *testing.T) {
 		{"Other labels", map[string]string{"foo": "bar", "bar": "baz"}, map[string]string{}},
 		{"Plain header", map[string]string{labelHeaders: "Foo: bar"}, map[string]string{"Foo": "bar"}},
 		{"Plain header without colon", map[string]string{labelHeaders: "Foo bar"}, map[string]string{"Foo": "bar"}},
-		{"Multiple headers", map[string]string{labelHeaders + ".1": "Foo bar", labelHeaders + ".2": "Baz: Quux"}, map[string]string{"Foo": "bar", "Baz": "Quux"}},
+		{
+			"Multiple headers",
+			map[string]string{labelHeaders + ".1": "Foo bar", labelHeaders + ".2": "Baz: Quux"},
+			map[string]string{"Foo": "bar", "Baz": "Quux"},
+		},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := &Container{
-				Labels: tt.labels,
-			}
-			if got := c.Headers(); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("Headers() = %v, want %v", got, tt.want)
-			}
-		})
+		t.Run(
+			tt.name,
+			func(t *testing.T) {
+				c := &Container{
+					Labels: tt.labels,
+				}
+				if got := c.Headers(); !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("Headers() = %v, want %v", got, tt.want)
+				}
+			},
+		)
 	}
 }
 
@@ -106,10 +119,13 @@ func Test_splitList(t *testing.T) {
 		{"mixed", args{"  test1, test2 test3,,,"}, []string{"test1", "test2", "test3"}},
 	}
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			if got := splitList(tt.args.input); !reflect.DeepEqual(got, tt.want) {
-				t.Errorf("splitList() = %v, want %v", got, tt.want)
-			}
-		})
+		t.Run(
+			tt.name,
+			func(t *testing.T) {
+				if got := splitList(tt.args.input); !reflect.DeepEqual(got, tt.want) {
+					t.Errorf("splitList() = %v, want %v", got, tt.want)
+				}
+			},
+		)
 	}
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"maps"
 	"strconv"
 	"strings"
 )
@@ -24,8 +25,7 @@ type Container struct {
 // ShouldProxy determines whether the container should be proxied to
 func (c *Container) ShouldProxy() bool {
 	_, hasVhost := c.Labels[labelVhost]
-	hasPort := c.Port() > -1
-	return hasPort && hasVhost
+	return c.Port() > -1 && hasVhost
 }
 
 // Port returns the port the container accepts traffic on, or -1 if it could not be determined
@@ -62,8 +62,7 @@ func (c *Container) Headers() map[string]string {
 			parts := strings.SplitN(v, " ", 2)
 			if len(parts) == 2 {
 				name := strings.TrimSpace(strings.TrimRight(parts[0], ":"))
-				value := strings.TrimSpace(parts[1])
-				res[name] = value
+				res[name] = strings.TrimSpace(parts[1])
 			} else {
 				log.Printf("Container %s has invalid label %s (%s) - expecting name and value", c.Name, k, v)
 			}
@@ -120,14 +119,12 @@ func (h *Hostname) update(alternates []string, container *Container) {
 		h.Alternatives[a] = a
 	}
 
-	for k, v := range container.Headers() {
-		h.Headers[k] = v
-	}
+	maps.Copy(h.Headers, container.Headers())
 }
 
 func splitList(input string) (result []string) {
 	result = []string{}
-	for _, part := range strings.Split(strings.ReplaceAll(input, " ", ","), ",") {
+	for part := range strings.SplitSeq(strings.ReplaceAll(input, " ", ","), ",") {
 		if len(part) > 0 {
 			result = append(result, part)
 		}

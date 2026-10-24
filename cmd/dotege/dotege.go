@@ -18,9 +18,17 @@ var (
 	signalContainer     = flag.String("signal-container", "", "The container to signal when the template changes")
 	signalType          = flag.String("signal-type", "HUP", "The signal to send to the container")
 	templateSource      = flag.String("template-source", "./templates/haproxy.cfg.tpl", "The template to use")
-	templateDestination = flag.String("template-destination", "/data/output/haproxy.cfg", "The destination to write the template to")
-	proxyTag            = flag.String("proxytag", "", "If set, ignore any containers that do not have this tag as a label")
-	poll                = flag.Duration("poll", time.Duration(int64(0)), "If set, how frequently to poll container lists (instead of using events)")
+	templateDestination = flag.String(
+		"template-destination",
+		"/data/output/haproxy.cfg",
+		"The destination to write the template to",
+	)
+	proxyTag = flag.String("proxytag", "", "If set, ignore any containers that do not have this tag as a label")
+	poll     = flag.Duration(
+		"poll",
+		time.Duration(int64(0)),
+		"If set, how frequently to poll container lists (instead of using events)",
+	)
 
 	containers = make(Containers)
 	GitSHA     string
@@ -76,7 +84,9 @@ func main() {
 					} else {
 						log.Printf(
 							"Ignored container %s due to proxy tag (wanted: '%s', got: '%s')",
-							event.Container.Name, *proxyTag, event.Container.Labels[labelProxyTag],
+							event.Container.Name,
+							*proxyTag,
+							event.Container.Labels[labelProxyTag],
 						)
 					}
 				case Removed:
@@ -100,13 +110,15 @@ func main() {
 		for {
 			select {
 			case <-jitterTimer.C:
-				updated := templates.Generate(struct {
-					Containers map[string]*Container
-					Hostnames  map[string]*Hostname
-				}{
-					containers,
-					containers.Hostnames(),
-				})
+				updated := templates.Generate(
+					struct {
+						Containers map[string]*Container
+						Hostnames  map[string]*Hostname
+					}{
+						containers,
+						containers.Hostnames(),
+					},
+				)
 
 				if updated {
 					sendSignal(dockerClient)
@@ -131,8 +143,7 @@ func monitorSignals() <-chan bool {
 	signal.Notify(signals, syscall.SIGINT, syscall.SIGTERM)
 
 	go func() {
-		sig := <-signals
-		fmt.Printf("Received %s signal\n", sig)
+		fmt.Printf("Received %s signal\n", <-signals)
 		done <- true
 	}()
 
@@ -140,9 +151,7 @@ func monitorSignals() <-chan bool {
 }
 
 func createTemplates() Templates {
-	var templates Templates
-	templates = append(templates, CreateTemplate(*templateSource, *templateDestination))
-	return templates
+	return Templates{CreateTemplate(*templateSource, *templateDestination)}
 }
 
 func sendSignal(dockerClient *client.Client) {

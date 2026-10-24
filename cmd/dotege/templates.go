@@ -45,7 +45,7 @@ func CreateTemplate(source, destination string) *Template {
 
 type Templates []*Template
 
-func (t Templates) Generate(context interface{}) (updated bool) {
+func (t Templates) Generate(context any) (updated bool) {
 	for _, tmpl := range t {
 		log.Printf("Checking for updates to %s", tmpl.source)
 		builder := &strings.Builder{}
