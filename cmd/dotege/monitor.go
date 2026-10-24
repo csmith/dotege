@@ -1,6 +1,6 @@
 package main
 
-import "golang.org/x/net/context"
+import "context"
 
 type Operation int
 

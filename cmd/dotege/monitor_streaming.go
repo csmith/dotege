@@ -1,13 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
 	"github.com/docker/docker/api/types/events"
 	"github.com/docker/docker/api/types/filters"
 	"github.com/docker/go-connections/nat"
-	"golang.org/x/net/context"
 	"time"
 )
 
@@ -25,11 +25,11 @@ type StreamingMonitor struct {
 
 func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerEvent) error {
 	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
 	stream, errors := m.startEventStream(ctx)
 	timer := time.NewTimer(30 * time.Second)
 
 	if err := m.publishExistingContainers(ctx, output); err != nil {
-		cancel()
 		return err
 	}
 
@@ -48,7 +48,6 @@ func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerE
 			if event.Action == "create" || event.Action == "rename" {
 				err, c := m.inspectContainer(ctx, event.Actor.ID)
 				if err != nil {
-					cancel()
 					return err
 				}
 				output <- ContainerEvent{
@@ -58,12 +57,10 @@ func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerE
 			}
 
 		case err := <-errors:
-			cancel()
 			return err
 
 		case <-timer.C:
 			if err := m.publishExistingContainers(ctx, output); err != nil {
-				cancel()
 				return err
 			}
 

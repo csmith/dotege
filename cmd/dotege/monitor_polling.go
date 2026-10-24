@@ -1,9 +1,9 @@
 package main
 
 import (
+	"context"
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/api/types/container"
-	"golang.org/x/net/context"
 	"time"
 )
 
