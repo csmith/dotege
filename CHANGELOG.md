@@ -1,5 +1,20 @@
 # Changelog
 
+## 2.4.1 - 2026-10-24
+
+### Changed
+
+- Update the base image to `ghcr.io/greboid/dockerbase/nonroot:1.20260918.0`.
+
+### Fixed
+
+- Build with Go 1.27.3, fixing standard library vulnerabilities in `net/http`,
+  `crypto/tls`, `crypto/x509` and `net/textproto`. The most relevant is
+  GO-2026-6809: compromised intermediate certificates are now distrusted when
+  connecting to Docker over TLS.
+- When using events, resync the container list every 30 seconds. Previously
+  this only happened once, 30 seconds after startup.
+
 ## 2.4.0 - 2026-09-10 
 
 * Signals can target containers by configured name or ID, regardless of proxytag.
