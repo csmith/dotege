@@ -3,18 +3,20 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
-	"github.com/docker/docker/api/types/events"
-	"github.com/docker/docker/api/types/filters"
-	"github.com/docker/go-connections/nat"
+	"github.com/moby/moby/api/types/container"
+	"github.com/moby/moby/api/types/network"
+	"github.com/moby/moby/client"
 	"time"
 )
 
 type StreamingDockerClient interface {
-	Events(ctx context.Context, options events.ListOptions) (<-chan events.Message, <-chan error)
-	ContainerList(ctx context.Context, options container.ListOptions) ([]types.Container, error)
-	ContainerInspect(ctx context.Context, containerID string) (types.ContainerJSON, error)
+	Events(ctx context.Context, options client.EventsListOptions) client.EventsResult
+	ContainerList(ctx context.Context, options client.ContainerListOptions) (client.ContainerListResult, error)
+	ContainerInspect(
+		ctx context.Context,
+		containerID string,
+		options client.ContainerInspectOptions,
+	) (client.ContainerInspectResult, error)
 }
 
 // StreamingMonitor listens to events emitted via the docker client to determine when containers are created
@@ -27,7 +29,7 @@ type StreamingMonitor struct {
 func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerEvent) error {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
-	stream, errors := m.startEventStream(ctx)
+	stream := m.startEventStream(ctx)
 	ticker := time.NewTicker(m.resyncInterval)
 	defer ticker.Stop()
 
@@ -37,7 +39,7 @@ func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerE
 
 	for {
 		select {
-		case event := <-stream:
+		case event := <-stream.Messages:
 			if event.Action == "destroy" || event.Action == "rename" {
 				output <- ContainerEvent{
 					Operation: Removed,
@@ -58,7 +60,7 @@ func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerE
 				}
 			}
 
-		case err := <-errors:
+		case err := <-stream.Err:
 			return err
 
 		case <-ticker.C:
@@ -72,22 +74,24 @@ func (m *StreamingMonitor) Monitor(ctx context.Context, output chan<- ContainerE
 	}
 }
 
-func (m *StreamingMonitor) startEventStream(ctx context.Context) (<-chan events.Message, <-chan error) {
-	args := filters.NewArgs()
-	args.Add("type", "container")
-	args.Add("event", "create")
-	args.Add("event", "destroy")
-	args.Add("event", "rename")
-	return m.client.Events(ctx, events.ListOptions{Filters: args})
+func (m *StreamingMonitor) startEventStream(ctx context.Context) client.EventsResult {
+	return m.client.Events(
+		ctx,
+		client.EventsListOptions{
+			Filters: make(client.Filters).
+				Add("type", "container").
+				Add("event", "create", "destroy", "rename"),
+		},
+	)
 }
 
 func (m *StreamingMonitor) publishExistingContainers(ctx context.Context, output chan<- ContainerEvent) error {
-	res, err := m.client.ContainerList(ctx, container.ListOptions{})
+	res, err := m.client.ContainerList(ctx, client.ContainerListOptions{})
 	if err != nil {
 		return fmt.Errorf("unable to list containers: %s", err.Error())
 	}
 
-	for _, c := range res {
+	for _, c := range res.Items {
 		output <- ContainerEvent{
 			Operation: Added,
 			Container: Container{
@@ -102,10 +106,12 @@ func (m *StreamingMonitor) publishExistingContainers(ctx context.Context, output
 }
 
 func (m *StreamingMonitor) inspectContainer(ctx context.Context, id string) (error, Container) {
-	c, err := m.client.ContainerInspect(ctx, id)
+	res, err := m.client.ContainerInspect(ctx, id, client.ContainerInspectOptions{})
 	if err != nil {
 		return err, Container{}
 	}
+
+	c := res.Container
 
 	return nil, Container{
 		Id:     c.ID,
@@ -116,17 +122,17 @@ func (m *StreamingMonitor) inspectContainer(ctx context.Context, id string) (err
 }
 
 // portsFromContainerPortMap collates all non-exposed TCP ports from the given map
-func portsFromContainerPortMap(ps nat.PortMap) (ports []int) {
+func portsFromContainerPortMap(ps network.PortMap) (ports []int) {
 	for p, bindings := range ps {
-		if p.Proto() == "tcp" && len(bindings) == 0 {
-			ports = append(ports, p.Int())
+		if p.Proto() == network.TCP && len(bindings) == 0 {
+			ports = append(ports, int(p.Num()))
 		}
 	}
 	return
 }
 
 // portsFromContainerPorts collates all the non-exposed TCP ports from the given port list
-func portsFromContainerPorts(ps []types.Port) (ports []int) {
+func portsFromContainerPorts(ps []container.PortSummary) (ports []int) {
 	for _, p := range ps {
 		if p.Type == "tcp" && p.PublicPort == 0 {
 			ports = append(ports, int(p.PrivatePort))

@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -36,7 +36,7 @@ func TestSendSignalTargetsConfiguredContainer(t *testing.T) {
 				)
 				defer server.Close()
 
-				dockerClient, err := client.NewClientWithOpts(client.WithHost(server.URL), client.WithVersion("1.41"))
+				dockerClient, err := client.New(client.WithHost(server.URL), client.WithAPIVersion("1.41"))
 				require.NoError(t, err)
 				defer dockerClient.Close()
 
@@ -60,7 +60,7 @@ func TestSendSignalEmptyTargetIsNoOp(t *testing.T) {
 	called := false
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) { called = true }))
 	defer server.Close()
-	dockerClient, err := client.NewClientWithOpts(client.WithHost(server.URL), client.WithVersion("1.41"))
+	dockerClient, err := client.New(client.WithHost(server.URL), client.WithAPIVersion("1.41"))
 	require.NoError(t, err)
 	defer dockerClient.Close()
 
@@ -80,7 +80,7 @@ func TestSendSignalLogsErrors(t *testing.T) {
 		),
 	)
 	defer server.Close()
-	dockerClient, err := client.NewClientWithOpts(client.WithHost(server.URL), client.WithVersion("1.41"))
+	dockerClient, err := client.New(client.WithHost(server.URL), client.WithAPIVersion("1.41"))
 	require.NoError(t, err)
 	defer dockerClient.Close()
 
@@ -102,7 +102,7 @@ func TestSendSignalUsesConfiguredTargetEvenWhenNotCached(t *testing.T) {
 		),
 	)
 	defer server.Close()
-	dockerClient, err := client.NewClientWithOpts(client.WithHost(server.URL), client.WithVersion("1.41"))
+	dockerClient, err := client.New(client.WithHost(server.URL), client.WithAPIVersion("1.41"))
 	require.NoError(t, err)
 	defer dockerClient.Close()
 

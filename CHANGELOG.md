@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.4.2 - 2026-11-04
+
+### Changed
+
+- Use the `moby/moby` client and API libraries instead of `docker/docker`.
+- Require Docker 19.03 (API version 1.40) or newer. Older daemons are no longer
+  supported.
+
 ## 2.4.1 - 2026-10-24
 
 ### Changed

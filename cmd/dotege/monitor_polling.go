@@ -2,13 +2,12 @@ package main
 
 import (
 	"context"
-	"github.com/docker/docker/api/types"
-	"github.com/docker/docker/api/types/container"
+	"github.com/moby/moby/client"
 	"time"
 )
 
 type PollingDockerClient interface {
-	ContainerList(ctx context.Context, options container.ListOptions) ([]types.Container, error)
+	ContainerList(ctx context.Context, options client.ContainerListOptions) (client.ContainerListResult, error)
 }
 
 type PollingMonitor struct {
@@ -22,26 +21,26 @@ func (p *PollingMonitor) Monitor(ctx context.Context, output chan<- ContainerEve
 	for {
 		seenThisTime := make(map[string]bool)
 
-		res, err := p.client.ContainerList(ctx, container.ListOptions{})
+		res, err := p.client.ContainerList(ctx, client.ContainerListOptions{})
 		if err != nil {
 			return err
 		}
 
-		for i := range res {
-			seenThisTime[res[i].ID] = true
-			if _, ok := seen[res[i].ID]; !ok {
+		for i := range res.Items {
+			seenThisTime[res.Items[i].ID] = true
+			if _, ok := seen[res.Items[i].ID]; !ok {
 				// We haven't seen the container before
 				output <- ContainerEvent{
 					Operation: Added,
 					Container: Container{
-						Id:     res[i].ID,
-						Name:   res[i].Names[0][1:],
-						Labels: res[i].Labels,
-						Ports:  portsFromContainerPorts(res[i].Ports),
+						Id:     res.Items[i].ID,
+						Name:   res.Items[i].Names[0][1:],
+						Labels: res.Items[i].Labels,
+						Ports:  portsFromContainerPorts(res.Items[i].Ports),
 					},
 				}
 
-				seen[res[i].ID] = true
+				seen[res.Items[i].ID] = true
 			}
 		}
 

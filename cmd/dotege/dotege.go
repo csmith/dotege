@@ -11,7 +11,7 @@ import (
 	"time"
 
 	"github.com/csmith/envflag/v2"
-	"github.com/docker/docker/client"
+	"github.com/moby/moby/client"
 )
 
 var (
@@ -42,10 +42,9 @@ func main() {
 
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
-	dockerClient, err := client.NewClientWithOpts(
+	dockerClient, err := client.New(
 		client.WithTLSClientConfigFromEnv(),
 		client.WithHostFromEnv(),
-		client.WithAPIVersionNegotiation(),
 	)
 	if err != nil {
 		panic(err)
@@ -160,7 +159,12 @@ func sendSignal(dockerClient *client.Client) {
 	}
 
 	log.Printf("Killing container %s with signal %s", *signalContainer, *signalType)
-	if err := dockerClient.ContainerKill(context.Background(), *signalContainer, *signalType); err != nil {
+	_, err := dockerClient.ContainerKill(
+		context.Background(),
+		*signalContainer,
+		client.ContainerKillOptions{Signal: *signalType},
+	)
+	if err != nil {
 		log.Printf("Unable to send signal %s to container %s: %v", *signalType, *signalContainer, err)
 	}
 }
