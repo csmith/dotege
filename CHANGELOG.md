@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 2.4.4 - 2026-11-24
 
 - Fix GO-2026-6974 by updating OpenTelemetry to 1.47.0
 
