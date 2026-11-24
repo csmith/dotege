@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- Fix GO-2026-6974 by updating OpenTelemetry to 1.47.0
+
 ## 2.4.3 - 2026-11-12
 
 - Update to Go 1.27.4
