@@ -18,6 +18,7 @@ require (
 )
 
 require (
+	github.com/Songmu/gocredits v1.1.0 // indirect
 	github.com/cespare/xxhash/v2 v2.3.0 // indirect
 	github.com/containerd/errdefs v1.0.0 // indirect
 	github.com/containerd/errdefs/pkg v0.3.0 // indirect
@@ -35,3 +36,5 @@ require (
 	go.opentelemetry.io/otel/trace v1.47.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.5 // indirect
 )
+
+tool github.com/Songmu/gocredits/cmd/gocredits
