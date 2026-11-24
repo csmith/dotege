@@ -42,10 +42,7 @@ func main() {
 
 	var err error
 	ctx, cancel := context.WithCancel(context.Background())
-	dockerClient, err := client.New(
-		client.WithTLSClientConfigFromEnv(),
-		client.WithHostFromEnv(),
-	)
+	dockerClient, err := client.New(client.WithTLSClientConfigFromEnv(), client.WithHostFromEnv())
 	if err != nil {
 		panic(err)
 	}

@@ -19,7 +19,11 @@ func TestContainer_ShouldProxy(t *testing.T) {
 		{"No labels", fields{Labels: map[string]string{}}, false},
 		{"Only port", fields{Labels: map[string]string{labelProxy: "8080"}}, false},
 		{"Vhost and port", fields{Labels: map[string]string{labelVhost: "example.com", labelProxy: "8080"}}, true},
-		{"Vhost and invalid port", fields{Labels: map[string]string{labelVhost: "example.com", labelProxy: "bob"}}, false},
+		{
+			"Vhost and invalid port",
+			fields{Labels: map[string]string{labelVhost: "example.com", labelProxy: "bob"}},
+			false,
+		},
 	}
 	for _, tt := range tests {
 		t.Run(

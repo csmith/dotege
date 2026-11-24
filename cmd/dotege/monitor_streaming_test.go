@@ -44,10 +44,5 @@ func TestStreamingMonitorResyncsRepeatedly(t *testing.T) {
 		_ = monitor.Monitor(ctx, make(chan ContainerEvent))
 	}()
 
-	assert.Eventually(
-		t,
-		func() bool { return fake.lists.Load() >= 3 },
-		time.Second,
-		time.Millisecond,
-	)
+	assert.Eventually(t, func() bool { return fake.lists.Load() >= 3 }, time.Second, time.Millisecond)
 }
